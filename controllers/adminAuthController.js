@@ -7,6 +7,13 @@ const getSignedKey = (id) => {
   return token;
 };
 
+const getCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+  maxAge: 24 * 60 * 60 * 1000,
+});
+
 export const createAdmin = async (req, res, next) => {
   try {
     const { username, password } = req.body;
@@ -27,12 +34,7 @@ export const createAdmin = async (req, res, next) => {
 
     const jwtToken = getSignedKey(newAdmin._id);
 
-    res.cookie("token", jwtToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    res.cookie("token", jwtToken, getCookieOptions());
 
     res.status(200).json({
       success: true,
@@ -67,12 +69,7 @@ export const adminLogin = async (req, res, next) => {
 
     const jwtToken = getSignedKey(admin._id);
 
-    res.cookie("token", jwtToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    res.cookie("token", jwtToken, getCookieOptions());
 
     res.status(200).json({
       success: true,
