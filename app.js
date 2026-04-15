@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import categoryRoutes from "./routes/categories.js";
 import productRoutes from "./routes/products.js";
 import adminAuthRoutes from "./routes/adminAuth.js";
+import userAuthRoutes from "./routes/userAuth.js";
 import { errorMiddleware } from "./middleware/errorMiddleware.js";
 import "./config/dotenv.js";
 import "./config/mongo.js";
@@ -11,8 +12,10 @@ import "./config/mongo.js";
 const app = express();
 
 const allowedOrigins = [
-  "https://the-fabroc-people.vercel.app",
+  "https://the-fabric-people.vercel.app",
+  "https://tfp-backend.onrender.com",
   "http://localhost:3000",
+  ...(process.env.CORS_ORIGINS?.split(",").map((origin) => origin.trim()).filter(Boolean) ?? []),
 ];
 
 app.use(
@@ -32,6 +35,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser())
 
 app.use("/api/auth/admin", adminAuthRoutes);
+app.use("/api/auth/user", userAuthRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
 app.use(errorMiddleware);

@@ -1,18 +1,10 @@
 import Admin from "../models/Admin.js";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-
-const getSignedKey = (id) => {
-  const token = jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "1d" });
-  return token;
-};
-
-const getCookieOptions = () => ({
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-  maxAge: 24 * 60 * 60 * 1000,
-});
+import {
+  ADMIN_COOKIE_NAME,
+  getCookieOptions,
+  getSignedKey,
+} from "../utils/auth.js";
 
 export const createAdmin = async (req, res, next) => {
   try {
@@ -32,9 +24,9 @@ export const createAdmin = async (req, res, next) => {
       password: hashedPassword,
     });
 
-    const jwtToken = getSignedKey(newAdmin._id);
+    const jwtToken = getSignedKey(newAdmin._id, "admin");
 
-    res.cookie("token", jwtToken, getCookieOptions());
+    res.cookie(ADMIN_COOKIE_NAME, jwtToken, getCookieOptions());
 
     res.status(200).json({
       success: true,
@@ -67,9 +59,9 @@ export const adminLogin = async (req, res, next) => {
       });
     }
 
-    const jwtToken = getSignedKey(admin._id);
+    const jwtToken = getSignedKey(admin._id, "admin");
 
-    res.cookie("token", jwtToken, getCookieOptions());
+    res.cookie(ADMIN_COOKIE_NAME, jwtToken, getCookieOptions());
 
     res.status(200).json({
       success: true,
@@ -82,7 +74,7 @@ export const adminLogin = async (req, res, next) => {
 
 export const adminLogout = (req, res, next) => {
   try {
-    res.clearCookie("token");
+    res.clearCookie(ADMIN_COOKIE_NAME, getCookieOptions());
     res.status(200).json({
       success: true,
       message: "Logged out Sucessfully",

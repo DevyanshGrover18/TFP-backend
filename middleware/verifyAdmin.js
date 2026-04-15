@@ -1,8 +1,9 @@
 import jwt from "jsonwebtoken";
+import { ADMIN_COOKIE_NAME } from "../utils/auth.js";
 
 const verifyAdmin = (req, res, next) => {
   try {
-    const token = req.cookies?.token;
+    const token = req.cookies?.[ADMIN_COOKIE_NAME];
 
     if (!token) {
       return res.status(401).json({
@@ -15,7 +16,7 @@ const verifyAdmin = (req, res, next) => {
     req.admin = decoded;
     next();
   } catch (error) {
-    res.clearCookie("token");
+    res.clearCookie(ADMIN_COOKIE_NAME);
 
     return res.status(401).json({
       success: false,

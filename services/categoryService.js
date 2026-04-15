@@ -31,13 +31,6 @@ function buildCategoryTree(categories) {
     roots.push(node);
   });
 
-  const sortNodes = (nodes) => {
-    nodes.sort((left, right) => left.name.localeCompare(right.name));
-    nodes.forEach((node) => sortNodes(node.children));
-  };
-
-  sortNodes(roots);
-
   return roots;
 }
 
@@ -61,13 +54,12 @@ export async function listCategories(parentId = null) {
     filter.parentId = parentId;
   }
 
-  return Category.find(filter).sort({ level: 1, name: 1 }).select(categoryProjection);
+  return Category.find(filter).sort({ createdAt: 1 }).select(categoryProjection);
 }
 
 export async function getCategoryTree() {
   const categories = await Category.find({}, categoryProjection).sort({
-    level: 1,
-    name: 1,
+    createdAt: 1,
   });
 
   return buildCategoryTree(categories);
