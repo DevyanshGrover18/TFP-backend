@@ -10,9 +10,21 @@ import "./config/mongo.js";
 
 const app = express();
 
+const allowedOrigins = [
+  "https://the-fabroc-people.vercel.app",
+  "http://localhost:3000",
+];
+
 app.use(
   cors({
-    origin: true,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   }),
 );
