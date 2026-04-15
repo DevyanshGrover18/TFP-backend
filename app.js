@@ -11,7 +11,7 @@ import "./config/mongo.js";
 const app = express();
 
 const allowedOrigins = [
-  "https://the-fabroc-people.vercel.app",
+  "https://the-fabric-people.vercel.app",
   "https://tfb-backend.onrender.com",
   "http://localhost:3000",
 ];
