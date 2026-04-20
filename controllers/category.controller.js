@@ -5,7 +5,7 @@ import {
   getCategoryTree,
   listCategories,
   updateCategory,
-} from "../services/categoryService.js";
+} from "../services/category.service.js";
 
 export async function getCategories(req, res, next) {
   try {

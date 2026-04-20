@@ -6,7 +6,7 @@ import {
   getCategory,
   getCategoryTreeController,
   updateCategoryController,
-} from "../controllers/categoryController.js";
+} from "../controllers/category.controller.js";
 import verifyAdmin from '../middleware/verifyAdmin.js'
 
 const router = Router();

@@ -1,11 +1,20 @@
 import crypto from "crypto";
 
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+
 function isRemoteUrl(value) {
   return /^https?:\/\//i.test(value);
 }
 
 function isDataUrl(value) {
   return /^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(value);
+}
+
+function getDataUrlSizeInBytes(value) {
+  const base64Payload = value.split(",")[1] ?? "";
+  const paddingLength = (base64Payload.match(/=*$/)?.[0]?.length ?? 0);
+
+  return Math.floor((base64Payload.length * 3) / 4) - paddingLength;
 }
 
 function getCloudinaryConfig() {
@@ -34,6 +43,23 @@ function signCloudinaryParams(params, apiSecret) {
   return crypto.createHash("sha1").update(`${serialized}${apiSecret}`).digest("hex");
 }
 
+export function createSignedUploadConfig(folder) {
+  const { cloudName, apiKey, apiSecret } = getCloudinaryConfig();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const uploadParams = {
+    folder,
+    timestamp,
+  };
+
+  return {
+    cloudName,
+    apiKey,
+    timestamp,
+    folder,
+    signature: signCloudinaryParams(uploadParams, apiSecret),
+  };
+}
+
 export async function storeImage(image, folder) {
   if (typeof image !== "string" || !image.trim()) {
     const error = new Error("Image is required");
@@ -49,6 +75,12 @@ export async function storeImage(image, folder) {
 
   if (!isDataUrl(normalizedImage)) {
     const error = new Error("Image must be a valid URL or base64 image");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (getDataUrlSizeInBytes(normalizedImage) > MAX_IMAGE_SIZE_BYTES) {
+    const error = new Error("Image must be 5 MB or smaller");
     error.statusCode = 400;
     throw error;
   }

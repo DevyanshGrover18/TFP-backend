@@ -1,5 +1,65 @@
 import mongoose from "mongoose";
 
+const specificationSchema = new mongoose.Schema(
+  {
+    key: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    value: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
+const variantSchema = new mongoose.Schema(
+  {
+    id:{
+      type : String,
+      required : true,
+      unique : true,
+    },
+    sku : {
+      type : String,
+      required : true,
+      unique : true
+    },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    color: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    colorCode: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    mainImage: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    gallery: {
+      type: [String],
+      default: [],
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
 const productSchema = new mongoose.Schema(
   {
     productId: {
@@ -18,7 +78,12 @@ const productSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    image: {
+    colorCode: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    description: {
       type: String,
       required: true,
       trim: true,
@@ -38,25 +103,24 @@ const productSchema = new mongoose.Schema(
       ref: "Category",
       required: true,
     },
-    composition: {
-      type: String,
-      required: true,
-      trim: true,
+    specifications: {
+      type: [specificationSchema],
+      default: [],
     },
-    color: {
-      type: String,
-      required: true,
-      trim: true,
+    media: {
+      mainImage: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      gallery: {
+        type: [String],
+        default: [],
+      },
     },
-    width: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    weight: {
-      type: String,
-      required: true,
-      trim: true,
+    variants: {
+      type: [variantSchema],
+      default: [],
     },
   },
   {

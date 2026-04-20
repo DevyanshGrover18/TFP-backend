@@ -2,9 +2,11 @@ import {
   createProduct,
   deleteProduct,
   getProductById,
+  getProductBySlug,
   listProducts,
   updateProduct,
-} from "../services/productService.js";
+} from "../services/product.service.js";
+import { createSignedUploadConfig } from "../services/image.service.js";
 
 export async function getProducts(_req, res, next) {
   try {
@@ -52,4 +54,29 @@ export async function deleteProductController(req, res, next) {
   } catch (error) {
     return next(error);
   }
+}
+
+export async function getProductUploadSignatureController(req, res, next) {
+  try {
+    const folder =
+      typeof req.body?.folder === "string" && req.body.folder.trim()
+        ? req.body.folder.trim()
+        : "thefabricpeople/products";
+
+    const upload = createSignedUploadConfig(folder);
+    return res.json({ upload });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export const getProductByName = async(req, res, next)=>{
+  const {slug} = req.params;
+  console.log("hit")
+  const {message , product} = await getProductBySlug({slug});
+  res.status(200).json({
+    success : true,
+    message, 
+    product
+  })
 }

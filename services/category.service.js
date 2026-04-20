@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import Category from "../models/Category.js";
-import { storeImage } from "./imageService.js";
+import { storeImage } from "./image.service.js";
 
 const categoryProjection = {
   name: 1,
