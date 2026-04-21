@@ -20,15 +20,14 @@ const specificationSchema = new mongoose.Schema(
 
 const variantSchema = new mongoose.Schema(
   {
-    id:{
-      type : String,
-      required : true,
-      unique : true,
+    id: {
+      type: String,
+      required: false,
+      default: undefined, // prevents null being stored when field is absent
     },
-    sku : {
-      type : String,
-      required : true,
-      unique : true
+    sku: {
+      type: String,
+      required: false,
     },
     name: {
       type: String,

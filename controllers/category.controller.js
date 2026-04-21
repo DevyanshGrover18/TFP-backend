@@ -11,7 +11,11 @@ export async function getCategories(req, res, next) {
   try {
     const { parentId } = req.query;
     const normalizedParentId =
-      typeof parentId === "string" ? (parentId === "null" ? null : parentId) : null;
+      typeof parentId === "string"
+        ? parentId === "null"
+          ? null
+          : parentId
+        : null;
     const categories = await listCategories(normalizedParentId);
 
     return res.json({ categories });
@@ -32,7 +36,7 @@ export async function getCategoryTreeController(_req, res, next) {
 export async function getCategory(req, res, next) {
   try {
     const category = await getCategoryById(req.params.id);
-    return res.json({ category });
+    return res.json(category);
   } catch (error) {
     return next(error);
   }

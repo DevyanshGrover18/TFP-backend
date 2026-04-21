@@ -5,6 +5,7 @@ import categoryRoutes from "./routes/categories.route.js";
 import productRoutes from "./routes/products.route.js";
 import adminAuthRoutes from "./routes/adminAuth.route.js";
 import userAuthRoutes from "./routes/user.route.js";
+import cartRoutes from "./routes/cart.route.js"
 import { errorMiddleware } from "./middleware/errorMiddleware.js";
 import "./config/dotenv.js";
 import "./config/mongo.js";
@@ -38,6 +39,7 @@ app.use("/api/auth/admin", adminAuthRoutes);
 app.use("/api/user", userAuthRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/cart", cartRoutes);
 app.use(errorMiddleware);
 
 app.listen(process.env.PORT, () => {

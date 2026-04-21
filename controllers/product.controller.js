@@ -1,5 +1,6 @@
 import {
   createProduct,
+  createProductFilters,
   deleteProduct,
   getProductById,
   getProductBySlug,
@@ -78,5 +79,14 @@ export const getProductByName = async(req, res, next)=>{
     success : true,
     message, 
     product
+  })
+}
+
+export const getProductFilters = async (req, res, next)=>{
+  const {message, filters} = await createProductFilters()
+  res.status(200).json({
+    success: true,
+    message,
+    filters
   })
 }

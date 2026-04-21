@@ -4,6 +4,7 @@ import {
   deleteProductController,
   getProduct,
   getProductByName,
+  getProductFilters,
   getProductUploadSignatureController,
   getProducts,
   updateProductController,
@@ -13,6 +14,7 @@ import verifyAdmin from "../middleware/verifyAdmin.js";
 const router = Router();
 
 router.get("/", getProducts);
+router.get("/filters", getProductFilters);
 router.post("/upload-signature", verifyAdmin, getProductUploadSignatureController);
 // router.get("/:id", getProduct);
 router.get("/:slug", getProductByName);

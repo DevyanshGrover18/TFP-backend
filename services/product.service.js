@@ -391,3 +391,139 @@ export const getProductBySlug = async ({ slug }) => {
     product,
   };
 };
+
+export const createProductFilters = async () => {
+  const products = await Product.find({})
+    .populate([
+      { path: "categoryId", select: "name level parentId" },
+      { path: "subCategoryId", select: "name level parentId" },
+      { path: "subSubCategoryId", select: "name level parentId" },
+    ])
+    .select({
+      categoryId: 1,
+      subCategoryId: 1,
+      subSubCategoryId: 1,
+      specifications: 1,
+    });
+
+  const categoriesMap = new Map();
+  const subCategoriesMap = new Map();
+  const subSubCategoriesMap = new Map();
+  const specificationFilters = new Map();
+
+  for (const product of products) {
+    const category = product.categoryId;
+    const subCategory = product.subCategoryId;
+    const subSubCategory = product.subSubCategoryId;
+
+    if (category?._id) {
+      const categoryId = String(category._id);
+      const existingCategory = categoriesMap.get(categoryId);
+
+      if (existingCategory) {
+        existingCategory.count += 1;
+      } else {
+        categoriesMap.set(categoryId, {
+          id: categoryId,
+          label: category.name,
+          count: 1,
+        });
+      }
+    }
+
+    if (subCategory?._id) {
+      const subCategoryId = String(subCategory._id);
+      const categoryId = category?._id ? String(category._id) : "";
+      const existingSubCategory = subCategoriesMap.get(subCategoryId);
+
+      if (existingSubCategory) {
+        existingSubCategory.count += 1;
+      } else {
+        subCategoriesMap.set(subCategoryId, {
+          id: subCategoryId,
+          label: subCategory.name,
+          parentId: categoryId,
+          count: 1,
+        });
+      }
+    }
+
+    if (subSubCategory?._id) {
+      const subSubCategoryId = String(subSubCategory._id);
+      const subCategoryId = subCategory?._id ? String(subCategory._id) : "";
+      const existingSubSubCategory = subSubCategoriesMap.get(subSubCategoryId);
+
+      if (existingSubSubCategory) {
+        existingSubSubCategory.count += 1;
+      } else {
+        subSubCategoriesMap.set(subSubCategoryId, {
+          id: subSubCategoryId,
+          label: subSubCategory.name,
+          parentId: subCategoryId,
+          count: 1,
+        });
+      }
+    }
+
+    for (const specification of product.specifications ?? []) {
+      const key =
+        typeof specification?.key === "string" ? specification.key.trim() : "";
+      const value =
+        typeof specification?.value === "string"
+          ? specification.value.trim()
+          : "";
+
+      if (!key || !value) {
+        continue;
+      }
+
+      const normalizedKey = key.toLowerCase();
+      const filterGroup =
+        specificationFilters.get(normalizedKey) ?? {
+          key: normalizedKey,
+          label: key,
+          values: new Map(),
+        };
+
+      const existingValue = filterGroup.values.get(value);
+
+      if (existingValue) {
+        existingValue.count += 1;
+      } else {
+        filterGroup.values.set(value, {
+          value,
+          label: value,
+          count: 1,
+        });
+      }
+
+      specificationFilters.set(normalizedKey, filterGroup);
+    }
+  }
+
+  const formatted = {
+    categories: Array.from(categoriesMap.values()).sort((a, b) =>
+      a.label.localeCompare(b.label),
+    ),
+    subCategories: Array.from(subCategoriesMap.values()).sort((a, b) =>
+      a.label.localeCompare(b.label),
+    ),
+    subSubCategories: Array.from(subSubCategoriesMap.values()).sort((a, b) =>
+      a.label.localeCompare(b.label),
+    ),
+    specifications: Array.from(specificationFilters.values())
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .map((group) => ({
+        key: group.key,
+        label: group.label,
+        values: Array.from(group.values.values()).sort((a, b) =>
+          a.label.localeCompare(b.label),
+        ),
+      })),
+  };
+
+  return {
+    message: "Filters sent",
+    filters: formatted,
+  };
+};
