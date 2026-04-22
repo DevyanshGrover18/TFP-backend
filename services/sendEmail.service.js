@@ -77,7 +77,7 @@ export const sendResendMail = async ({ name, email, orderId }) => {
       </p>
 
       <div style="text-align:center; margin:30px 0;">
-        <a href="#" style="background:#111; color:#fff; padding:12px 20px; text-decoration:none; border-radius:6px;">
+        <a href="${process.env.BASE_URL}/order/${orderId}" style="background:#111; color:#fff; padding:12px 20px; text-decoration:none; border-radius:6px;">
           View Order
         </a>
       </div>
