@@ -155,3 +155,32 @@ export async function getOrderById(id) {
     order: sanitizeOrder(order),
   };
 }
+
+export const updateOrderStatusById = async ({id, status}) => {
+  if (!mongoose.isValidObjectId(id)) {
+    throw createError("Invalid Order Id", 400);
+  }
+
+  const allowedStatus = ["Pending", "Processing", "Completed", "Cancelled"];
+
+  if (!allowedStatus.includes(status)) {
+    throw createError("Invalid status", 400);
+  }
+
+  const order = await Order.findByIdAndUpdate(
+    id,
+    { status },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+
+  if (!order) {
+    throw createError("Order not found", 404);
+  }
+
+  return {
+    message : "order updated successfully"
+  };
+};

@@ -16,6 +16,7 @@ const productProjection = {
   specifications: 1,
   media: 1,
   variants: 1,
+  isNew: 1,
   createdAt: 1,
   updatedAt: 1,
 };
@@ -256,6 +257,9 @@ async function normalizeProductPayload(payload) {
   };
   const variants = await normalizeVariants(payload?.variants);
 
+  // isNew defaults to false if not provided or not a boolean
+  const isNew = payload?.isNew === true;
+
   return {
     sku,
     name,
@@ -267,6 +271,7 @@ async function normalizeProductPayload(payload) {
     specifications,
     media,
     variants,
+    isNew, // ← add this
   };
 }
 
@@ -342,6 +347,7 @@ export async function updateProduct(id, payload) {
   product.specifications = normalizedPayload.specifications;
   product.media = normalizedPayload.media;
   product.variants = normalizedPayload.variants;
+  product.isNew = normalizedPayload.isNew;   // ← add this
 
   await product.save();
   return product;
@@ -478,12 +484,11 @@ export const createProductFilters = async () => {
       }
 
       const normalizedKey = key.toLowerCase();
-      const filterGroup =
-        specificationFilters.get(normalizedKey) ?? {
-          key: normalizedKey,
-          label: key,
-          values: new Map(),
-        };
+      const filterGroup = specificationFilters.get(normalizedKey) ?? {
+        key: normalizedKey,
+        label: key,
+        values: new Map(),
+      };
 
       const existingValue = filterGroup.values.get(value);
 

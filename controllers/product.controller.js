@@ -71,16 +71,19 @@ export async function getProductUploadSignatureController(req, res, next) {
   }
 }
 
-export const getProductByName = async(req, res, next)=>{
-  const {slug} = req.params;
-  console.log("hit")
-  const {message , product} = await getProductBySlug({slug});
-  res.status(200).json({
-    success : true,
-    message, 
-    product
-  })
-}
+export const getProductByName = async (req, res, next) => {
+  try {
+    const { slug } = req.params;
+    const { message, product } = await getProductBySlug({ slug });
+    res.status(200).json({
+      success: true,
+      message,
+      product,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const getProductFilters = async (req, res, next)=>{
   const {message, filters} = await createProductFilters()

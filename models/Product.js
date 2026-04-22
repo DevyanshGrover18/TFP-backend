@@ -121,6 +121,10 @@ const productSchema = new mongoose.Schema(
       type: [variantSchema],
       default: [],
     },
+    isNew : {
+      type : Boolean,
+      default : false
+    }
   },
   {
     timestamps: true,
