@@ -1,5 +1,45 @@
 import mongoose from "mongoose";
 
+const orderVariantSchema = new mongoose.Schema(
+  {
+    sku: { type: String, default: "" },
+    name: { type: String, default: "" },
+    color: { type: String, default: "" },
+    colorCode: { type: String, default: "" },
+  },
+  { _id: false },
+);
+
+const orderItemSchema = new mongoose.Schema(
+  {
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    },
+    variantId: {
+      type: String,
+      default: null,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+      default: 1,
+    },
+    name: { type: String, required: true, trim: true },
+    sku: { type: String, required: true, trim: true },
+    colorCode: { type: String, required: true, trim: true },
+    description: { type: String, required: true, trim: true },
+    image: { type: String, required: true, trim: true },
+    variant: {
+      type: orderVariantSchema,
+      default: null,
+    },
+  },
+  { _id: false },
+);
+
 const invoiceAddressSchema = new mongoose.Schema(
   {
     companyName: { type: String, default: "" },
@@ -48,34 +88,25 @@ const quoteDetailsSchema = new mongoose.Schema(
   { _id: false },
 );
 
-const userSchema = new mongoose.Schema(
+const orderSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    email: {
+    orderNumber: {
       type: String,
       required: true,
       unique: true,
-      lowercase: true,
       trim: true,
     },
-    password: {
-      type: String,
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
     },
-    status : {
-      type : Boolean,
-      required : true,
-      default : true
-    },
-    role : {
+    status: {
       type: String,
-      default: "user",
+      enum: ["Pending", "Processing", "Completed", "Cancelled"],
+      default: "Pending",
     },
-    quoteProfile: {
+    profile: {
       invoice: {
         type: invoiceAddressSchema,
         default: () => ({}),
@@ -89,10 +120,14 @@ const userSchema = new mongoose.Schema(
         default: () => ({}),
       },
     },
+    items: {
+      type: [orderItemSchema],
+      default: [],
+    },
   },
   {
     timestamps: true,
   },
 );
 
-export default mongoose.model("User", userSchema);
+export default mongoose.models.Order || mongoose.model("Order", orderSchema);

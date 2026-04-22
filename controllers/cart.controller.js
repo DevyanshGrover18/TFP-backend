@@ -7,7 +7,7 @@ import {
 
 export const getAllItemsInCart = async (req, res, next) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user?.id;
     if(!userId){
         return res.status(400).json({
             success : false,
@@ -28,7 +28,8 @@ export const getAllItemsInCart = async (req, res, next) => {
 
 export const addItemToCart = async (req, res, next) => {
   try {
-    const { userId, productId, variantId } = req.body;
+    const userId = req.user?.id;
+    const { productId, variantId } = req.body;
     if (!userId || !productId) {
       return res.status(400).json({
         success: false,
@@ -49,7 +50,8 @@ export const addItemToCart = async (req, res, next) => {
 
 export const updateCartItem = async (req, res, next) => {
   try {
-    const { userId, productId, variantId, quantity } = req.body;
+    const userId = req.user?.id;
+    const { productId, variantId, quantity } = req.body;
 
     if (!userId || !productId || typeof quantity !== "number") {
       return res.status(400).json({
@@ -76,7 +78,8 @@ export const updateCartItem = async (req, res, next) => {
 
 export const removeCartItem = async (req, res, next) => {
   try {
-    const { userId, productId, variantId } = req.body;
+    const userId = req.user?.id;
+    const { productId, variantId } = req.body;
 
     if (!userId || !productId) {
       return res.status(400).json({

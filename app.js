@@ -6,6 +6,8 @@ import productRoutes from "./routes/products.route.js";
 import adminAuthRoutes from "./routes/adminAuth.route.js";
 import userAuthRoutes from "./routes/user.route.js";
 import cartRoutes from "./routes/cart.route.js"
+import specialUserRouter from './routes/specialUser.routes.js';
+import orderRoutes from "./routes/order.route.js";
 import { errorMiddleware } from "./middleware/errorMiddleware.js";
 import "./config/dotenv.js";
 import "./config/mongo.js";
@@ -25,7 +27,7 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
         return;
-      }
+      } 
 
       callback(new Error("Not allowed by CORS"));
     },
@@ -37,9 +39,11 @@ app.use(cookieParser())
 
 app.use("/api/auth/admin", adminAuthRoutes);
 app.use("/api/user", userAuthRoutes);
+app.use("/api/special-users", specialUserRouter);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
 app.use(errorMiddleware);
 
 app.listen(process.env.PORT, () => {

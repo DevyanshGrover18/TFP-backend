@@ -4,9 +4,11 @@ import {
   deleteUserById,
   getAllUsers,
   getUserById,
+  getUserQuoteProfile,
   loginUserAccount,
   logoutUserAccount,
   signupUserAccount,
+  updateUserQuoteProfile,
   updateUserById,
 } from "../services/user.service.js";
 
@@ -48,6 +50,38 @@ export const logoutUser = (req, res, next) => {
     return res.status(200).json({
       success: true,
       message,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getCurrentUserProfile = async (req, res, next) => {
+  try {
+    const { message, profile } = await getUserQuoteProfile(req.user.id);
+
+    res.status(200).json({
+      success: true,
+      message,
+      profile,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateCurrentUserProfile = async (req, res, next) => {
+  try {
+    const { message, user, profile } = await updateUserQuoteProfile(
+      req.user.id,
+      req.body ?? {},
+    );
+
+    res.status(200).json({
+      success: true,
+      message,
+      user,
+      profile,
     });
   } catch (error) {
     next(error);

@@ -5,12 +5,13 @@ import {
   removeCartItem,
   updateCartItem,
 } from "../controllers/cart.controller.js";
+import verifyUser from "../middleware/verifyUser.js";
 
 const router = Router();
 
-router.get("/:userId", getAllItemsInCart)
-router.post("/add", addItemToCart);
-router.patch("/update", updateCartItem);
-router.delete("/remove", removeCartItem);
+router.get("/me", verifyUser, getAllItemsInCart);
+router.post("/add", verifyUser, addItemToCart);
+router.patch("/update", verifyUser, updateCartItem);
+router.delete("/remove", verifyUser, removeCartItem);
 
 export default router;
