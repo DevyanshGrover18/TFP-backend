@@ -16,7 +16,7 @@ router.post("/", verifyUser, createOrder);
 router.post("/send-mail", sendSuccessMail);
 router.get("/me", verifyUser, getMyOrders);
 router.get("/", verifyAdmin, getOrders);
-router.get("/:id", verifyAdmin, getOrder);
+router.get("/:id", getOrder);
 router.post("/:id", verifyAdmin, updateOrderStatus);
 
 export default router;
