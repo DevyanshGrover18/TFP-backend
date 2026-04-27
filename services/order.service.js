@@ -9,6 +9,27 @@ function createError(message, statusCode) {
   return error;
 }
 
+function normalizeCategoryValue(category) {
+  if (typeof category === "string") {
+    return { id: "", name: category.trim() };
+  }
+
+  return {
+    id: String(category?.id ?? "").trim(),
+    name: String(category?.name ?? "").trim(),
+  };
+}
+
+function normalizeOrderProfile(profile) {
+  return {
+    ...profile,
+    invoice: {
+      ...profile?.invoice,
+      category: normalizeCategoryValue(profile?.invoice?.category),
+    },
+  };
+}
+
 function sanitizeOrder(order) {
   const customerName = `${order.profile?.details?.firstName ?? ""} ${
     order.profile?.details?.lastName ?? ""
@@ -27,7 +48,7 @@ function sanitizeOrder(order) {
       order.profile?.details?.mobile ?? ""
     }`.trim(),
     itemCount: order.items?.length ?? 0,
-    profile: order.profile,
+    profile: normalizeOrderProfile(order.profile),
     items: order.items ?? [],
   };
 }
@@ -107,7 +128,7 @@ export async function createOrderFromCart(userId) {
     orderNumber: await createUniqueOrderNumber(),
     userId,
     status: "Pending",
-    profile: user.quoteProfile,
+    profile: normalizeOrderProfile(user.quoteProfile),
     items,
   });
 

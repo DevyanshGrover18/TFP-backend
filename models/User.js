@@ -1,5 +1,13 @@
 import mongoose from "mongoose";
 
+const categoryValueSchema = new mongoose.Schema(
+  {
+    id: { type: String, default: "" },
+    name: { type: String, default: "" },
+  },
+  { _id: false },
+);
+
 const invoiceAddressSchema = new mongoose.Schema(
   {
     companyName: { type: String, default: "" },
@@ -12,7 +20,10 @@ const invoiceAddressSchema = new mongoose.Schema(
     notLiableForVat: { type: Boolean, default: false },
     vatNumber: { type: String, default: "" },
     chamberOfCommerce: { type: String, default: "" },
-    category: { type: String, default: "" },
+    category: {
+      type: categoryValueSchema,
+      default: () => ({ id: "", name: "" }),
+    },
     website: { type: String, default: "" },
   },
   { _id: false },

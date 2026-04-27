@@ -121,6 +121,10 @@ const productSchema = new mongoose.Schema(
       type: [variantSchema],
       default: [],
     },
+    badges: {
+      type: [String],
+      default: [],
+    },
     isNew : {
       type : Boolean,
       default : false

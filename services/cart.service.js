@@ -31,6 +31,10 @@ async function ensureUserAndProduct({ userId, productId, variantId }) {
     throw createError("Product not found", 404);
   }
 
+  if (Array.isArray(product.badges) && product.badges.includes("Sold Out")) {
+    throw createError("This product is sold out", 400);
+  }
+
   if (variantId) {
     const variant = product.variants.find((item) => item.id === variantId);
 

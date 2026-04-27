@@ -1,8 +1,11 @@
 import mongoose from "mongoose";
+import Badge from "../models/Badge.js";
 import Category from "../models/Category.js";
 import Product from "../models/Product.js";
 import { storeImage } from "./image.service.js";
 import { randomUUID } from "crypto";
+
+const RESERVED_BADGE_NAMES = ["New", "Sold Out"];
 
 const productProjection = {
   productId: 1,
@@ -16,10 +19,69 @@ const productProjection = {
   specifications: 1,
   media: 1,
   variants: 1,
+  badges: 1,
   isNew: 1,
   createdAt: 1,
   updatedAt: 1,
 };
+
+function getCategoryRefId(value) {
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  if (value instanceof mongoose.Types.ObjectId) {
+    return String(value);
+  }
+
+  if (typeof value === "object") {
+    if (value._id) {
+      return String(value._id);
+    }
+
+    if (value.id) {
+      return String(value.id).trim();
+    }
+  }
+
+  return "";
+}
+
+function getCategoryRefName(value) {
+  if (!value || typeof value !== "object") {
+    return "";
+  }
+
+  return typeof value.name === "string" ? value.name.trim() : "";
+}
+
+function serializeCategoryRef(value) {
+  return {
+    id: getCategoryRefId(value),
+    name: getCategoryRefName(value),
+  };
+}
+
+function serializeProduct(product) {
+  const raw = typeof product?.toObject === "function" ? product.toObject() : product;
+
+  return {
+    ...raw,
+    categoryId: serializeCategoryRef(raw?.categoryId),
+    subCategoryId: serializeCategoryRef(raw?.subCategoryId),
+    subSubCategoryId: serializeCategoryRef(raw?.subSubCategoryId),
+    badges:
+      Array.isArray(raw?.badges) && raw.badges.length
+        ? raw.badges
+        : raw?.isNew
+          ? ["New"]
+          : [],
+  };
+}
 
 function getTodayPrefix() {
   return new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -45,7 +107,15 @@ async function resolveCategoryChain({
   subCategoryId,
   subSubCategoryId,
 }) {
-  if (!categoryId || !subCategoryId || !subSubCategoryId) {
+  const normalizedCategoryId = getCategoryRefId(categoryId);
+  const normalizedSubCategoryId = getCategoryRefId(subCategoryId);
+  const normalizedSubSubCategoryId = getCategoryRefId(subSubCategoryId);
+
+  if (
+    !normalizedCategoryId ||
+    !normalizedSubCategoryId ||
+    !normalizedSubSubCategoryId
+  ) {
     const error = new Error(
       "Category, subcategory, and sub sub category are required",
     );
@@ -53,7 +123,11 @@ async function resolveCategoryChain({
     throw error;
   }
 
-  const ids = [categoryId, subCategoryId, subSubCategoryId];
+  const ids = [
+    normalizedCategoryId,
+    normalizedSubCategoryId,
+    normalizedSubSubCategoryId,
+  ];
 
   for (const id of ids) {
     if (!mongoose.isValidObjectId(id)) {
@@ -64,9 +138,9 @@ async function resolveCategoryChain({
   }
 
   const [rootCategory, subCategory, subSubCategory] = await Promise.all([
-    Category.findById(categoryId),
-    Category.findById(subCategoryId),
-    Category.findById(subSubCategoryId),
+    Category.findById(normalizedCategoryId),
+    Category.findById(normalizedSubCategoryId),
+    Category.findById(normalizedSubSubCategoryId),
   ]);
 
   if (!rootCategory || !subCategory || !subSubCategory) {
@@ -215,6 +289,57 @@ async function normalizeVariants(variants) {
   );
 }
 
+async function normalizeBadges(badges) {
+  if (badges == null) {
+    return [];
+  }
+
+  if (!Array.isArray(badges)) {
+    const error = new Error("Badges must be a list");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const normalized = Array.from(
+    new Set(
+      badges
+        .map((badge) => (typeof badge === "string" ? badge.trim() : ""))
+        .filter(Boolean),
+    ),
+  );
+
+  if (!normalized.length) {
+    return [];
+  }
+
+  await Promise.all(
+    RESERVED_BADGE_NAMES.map((name) =>
+      Badge.findOneAndUpdate(
+        { name },
+        { name },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      ),
+    ),
+  );
+
+  const storedBadges = await Badge.find(
+    { name: { $in: normalized } },
+    { name: 1 },
+  ).lean();
+  const allowedNames = new Set(storedBadges.map((badge) => badge.name));
+  const invalidBadges = normalized.filter((badge) => !allowedNames.has(badge));
+
+  if (invalidBadges.length) {
+    const error = new Error(
+      `Invalid badge selection: ${invalidBadges.join(", ")}`,
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return normalized;
+}
+
 async function normalizeProductPayload(payload) {
   const sku = await requireStringField(
     payload?.sku,
@@ -256,9 +381,8 @@ async function normalizeProductPayload(payload) {
     ),
   };
   const variants = await normalizeVariants(payload?.variants);
-
-  // isNew defaults to false if not provided or not a boolean
-  const isNew = payload?.isNew === true;
+  const badges = await normalizeBadges(payload?.badges);
+  const isNew = badges.includes("New") || payload?.isNew === true;
 
   return {
     sku,
@@ -271,12 +395,13 @@ async function normalizeProductPayload(payload) {
     specifications,
     media,
     variants,
-    isNew, // ← add this
+    badges,
+    isNew,
   };
 }
 
 export async function listProducts() {
-  return Product.find({})
+  const products = await Product.find({})
     .sort({ createdAt: -1 })
     .populate([
       { path: "categoryId", select: "name" },
@@ -284,6 +409,8 @@ export async function listProducts() {
       { path: "subSubCategoryId", select: "name" },
     ])
     .select(productProjection);
+
+  return products.map(serializeProduct);
 }
 
 export async function getProductById(id) {
@@ -307,17 +434,19 @@ export async function getProductById(id) {
     throw error;
   }
 
-  return product;
+  return serializeProduct(product);
 }
 
 export async function createProduct(payload) {
   const normalizedPayload = await normalizeProductPayload(payload);
   const productId = await generateProductId();
 
-  return Product.create({
+  const createdProduct = await Product.create({
     productId,
     ...normalizedPayload,
   });
+
+  return getProductById(createdProduct._id);
 }
 
 export async function updateProduct(id, payload) {
@@ -347,10 +476,11 @@ export async function updateProduct(id, payload) {
   product.specifications = normalizedPayload.specifications;
   product.media = normalizedPayload.media;
   product.variants = normalizedPayload.variants;
-  product.isNew = normalizedPayload.isNew;   // ← add this
+  product.badges = normalizedPayload.badges;
+  product.isNew = normalizedPayload.isNew;
 
   await product.save();
-  return product;
+  return getProductById(product._id);
 }
 
 export async function deleteProduct(id) {
@@ -384,7 +514,11 @@ export const getProductBySlug = async ({ slug }) => {
 
   const product = await Product.findOne({
     name: { $regex: `^${slug}$`, $options: "i" },
-  });
+  }).populate([
+    { path: "categoryId", select: "name" },
+    { path: "subCategoryId", select: "name" },
+    { path: "subSubCategoryId", select: "name" },
+  ]);
 
   if (!product) {
     const error = new Error("Product not found");
@@ -394,7 +528,7 @@ export const getProductBySlug = async ({ slug }) => {
 
   return {
     message: "Product found",
-    product,
+    product: serializeProduct(product),
   };
 };
 

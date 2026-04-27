@@ -9,6 +9,18 @@ function createError(message, statusCode) {
   return error;
 }
 
+function normalizeCategoryValue(category) {
+  if (typeof category === "string") {
+    const name = category.trim();
+    return { id: "", name };
+  }
+
+  return {
+    id: String(category?.id ?? "").trim(),
+    name: String(category?.name ?? "").trim(),
+  };
+}
+
 export function sanitizeUser(user) {
   return {
     id: user._id,
@@ -19,6 +31,10 @@ export function sanitizeUser(user) {
 }
 
 function sanitizeQuoteProfile(user) {
+  const invoiceCategory = normalizeCategoryValue(
+    user.quoteProfile?.invoice?.category,
+  );
+
   return {
     invoice: {
       companyName: user.quoteProfile?.invoice?.companyName ?? "",
@@ -31,7 +47,7 @@ function sanitizeQuoteProfile(user) {
       notLiableForVat: user.quoteProfile?.invoice?.notLiableForVat ?? false,
       vatNumber: user.quoteProfile?.invoice?.vatNumber ?? "",
       chamberOfCommerce: user.quoteProfile?.invoice?.chamberOfCommerce ?? "",
-      category: user.quoteProfile?.invoice?.category ?? "",
+      category: invoiceCategory,
       website: user.quoteProfile?.invoice?.website ?? "",
     },
     shipping: {
@@ -165,6 +181,7 @@ export async function updateUserQuoteProfile(userId, data) {
 
   user.name = `${firstName} ${lastName}`.trim() || user.name;
   user.email = detailsEmail || user.email;
+  const invoiceCategory = normalizeCategoryValue(data.invoice.category);
   user.quoteProfile = {
     invoice: {
       companyName: String(data.invoice.companyName ?? "").trim(),
@@ -177,7 +194,7 @@ export async function updateUserQuoteProfile(userId, data) {
       notLiableForVat: Boolean(data.invoice.notLiableForVat),
       vatNumber: String(data.invoice.vatNumber ?? "").trim(),
       chamberOfCommerce: String(data.invoice.chamberOfCommerce ?? "").trim(),
-      category: String(data.invoice.category ?? "").trim(),
+      category: invoiceCategory,
       website: String(data.invoice.website ?? "").trim(),
     },
     shipping: {

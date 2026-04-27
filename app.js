@@ -5,9 +5,11 @@ import categoryRoutes from "./routes/categories.route.js";
 import productRoutes from "./routes/products.route.js";
 import adminAuthRoutes from "./routes/adminAuth.route.js";
 import userAuthRoutes from "./routes/user.route.js";
-import cartRoutes from "./routes/cart.route.js"
-import specialUserRouter from './routes/specialUser.routes.js';
+import cartRoutes from "./routes/cart.route.js";
+import specialUserRouter from "./routes/specialUser.routes.js";
 import orderRoutes from "./routes/order.route.js";
+import overviewRoutes from "./routes/overview.route.js";
+import badgeRoutes from "./routes/badges.route.js";
 import { errorMiddleware } from "./middleware/errorMiddleware.js";
 import "./config/dotenv.js";
 import "./config/mongo.js";
@@ -18,7 +20,9 @@ const allowedOrigins = [
   "https://the-fabric-people.vercel.app",
   "https://tfp-backend.onrender.com",
   "http://localhost:3000",
-  ...(process.env.CORS_ORIGINS?.split(",").map((origin) => origin.trim()).filter(Boolean) ?? []),
+  ...(process.env.CORS_ORIGINS?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean) ?? []),
 ];
 
 app.use(
@@ -27,7 +31,7 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
         return;
-      } 
+      }
 
       callback(new Error("Not allowed by CORS"));
     },
@@ -35,7 +39,7 @@ app.use(
   }),
 );
 app.use(express.json({ limit: "50mb" }));
-app.use(cookieParser())
+app.use(cookieParser());
 
 app.use("/api/auth/admin", adminAuthRoutes);
 app.use("/api/user", userAuthRoutes);
@@ -44,6 +48,8 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/overview", overviewRoutes);
+app.use("/api/badges", badgeRoutes);
 app.use(errorMiddleware);
 
 app.listen(process.env.PORT, () => {
