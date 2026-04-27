@@ -7,6 +7,7 @@ import {
 } from "../services/order.service.js";
 import { sendResendMail } from "../services/sendEmail.service.js";
 
+
 export const createOrder = async (req, res, next) => {
   try {
     const { message, order } = await createOrderFromCart(req.user.id);
@@ -84,24 +85,25 @@ export const sendSuccessMail = async (req, res, next) => {
   }
 };
 
-
-export const updateOrderStatus = async (req, res, next)=>{
+export const updateOrderStatus = async (req, res, next) => {
   try {
-    const {id} = req.params;
-    const {status} = req.body
-    if(!id || !status){
+    const { id } = req.params;
+    const { status, fields } = req.body;
+    if (!id) {
       return res.status(400).json({
-        success : false,
-        message : "Id and status are required"
-      })
+        success: false,
+        message: "Id is required",
+      });
     }
 
-    const {message} = await updateOrderStatusById({id, status});
+    const { message } = await updateOrderStatusById({ id, status, fields });
     res.status(200).json({
-      success : true,
-      message
-    })
+      success: true,
+      message,
+    });
   } catch (error) {
-    next(error)
+    next(error);
   }
-}
+};
+
+

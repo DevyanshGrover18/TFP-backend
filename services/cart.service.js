@@ -201,3 +201,25 @@ export const removeItem = async ({ userId, productId, variantId }) => {
     message: "Item removed from cart",
   };
 };
+
+export const clearCartService = async (userId)=>{
+  if(!mongoose.isValidObjectId(userId)){
+    return {
+      success : false,
+      message : "Cart not found"
+    }
+  }
+
+  const response = await Cart.findOneAndDelete({userId})
+  if(!response){
+    return {
+      success : false,
+      message : "Cart not found"
+    }
+  }
+
+  return {
+    success : true,
+    message : "Cart Cleared"
+  }
+}

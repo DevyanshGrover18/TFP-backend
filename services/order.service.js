@@ -177,20 +177,41 @@ export async function getOrderById(id) {
   };
 }
 
-export const updateOrderStatusById = async ({id, status}) => {
+export const updateOrderStatusById = async ({ id, status, fields }) => {
   if (!mongoose.isValidObjectId(id)) {
     throw createError("Invalid Order Id", 400);
   }
 
   const allowedStatus = ["Pending", "Processing", "Completed", "Cancelled"];
 
-  if (!allowedStatus.includes(status)) {
+  if (status && !allowedStatus.includes(status)) {
     throw createError("Invalid status", 400);
+  }
+
+  // Build update object dynamically
+  const updateData = {};
+
+  if (status) {
+    updateData.status = status;
+  }
+
+  if (fields && Array.isArray(fields)) {
+    const isValid = fields.every(
+      (f) => typeof f.key === "string" && typeof f.value === "string"
+    );
+    if (!isValid) {
+      throw createError("Each field must have a string key and value", 400);
+    }
+    updateData.fields = fields;
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    throw createError("No valid fields provided to update", 400);
   }
 
   const order = await Order.findByIdAndUpdate(
     id,
-    { status },
+    { $set: updateData },
     {
       new: true,
       runValidators: true,
@@ -202,6 +223,6 @@ export const updateOrderStatusById = async ({id, status}) => {
   }
 
   return {
-    message : "order updated successfully"
+    message: "Order updated successfully",
   };
 };

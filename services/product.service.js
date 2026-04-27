@@ -20,6 +20,7 @@ const productProjection = {
   media: 1,
   variants: 1,
   badges: 1,
+  isSpecial: 1,
   isNew: 1,
   createdAt: 1,
   updatedAt: 1,
@@ -81,6 +82,14 @@ function serializeProduct(product) {
           ? ["New"]
           : [],
   };
+}
+
+function createProductSlug(name) {
+  return String(name ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function getTodayPrefix() {
@@ -382,6 +391,7 @@ async function normalizeProductPayload(payload) {
   };
   const variants = await normalizeVariants(payload?.variants);
   const badges = await normalizeBadges(payload?.badges);
+  const isSpecial = payload?.isSpecial === true;
   const isNew = badges.includes("New") || payload?.isNew === true;
 
   return {
@@ -396,6 +406,7 @@ async function normalizeProductPayload(payload) {
     media,
     variants,
     badges,
+    isSpecial,
     isNew,
   };
 }
@@ -477,6 +488,7 @@ export async function updateProduct(id, payload) {
   product.media = normalizedPayload.media;
   product.variants = normalizedPayload.variants;
   product.badges = normalizedPayload.badges;
+  product.isSpecial = normalizedPayload.isSpecial;
   product.isNew = normalizedPayload.isNew;
 
   await product.save();
@@ -512,13 +524,30 @@ export const getProductBySlug = async ({ slug }) => {
     throw error;
   }
 
-  const product = await Product.findOne({
-    name: { $regex: `^${slug}$`, $options: "i" },
+  const decodedSlug = decodeURIComponent(String(slug)).trim();
+
+  let product = await Product.findOne({
+    name: { $regex: `^${decodedSlug}$`, $options: "i" },
   }).populate([
     { path: "categoryId", select: "name" },
     { path: "subCategoryId", select: "name" },
     { path: "subSubCategoryId", select: "name" },
   ]);
+
+  if (!product) {
+    const candidates = await Product.find({})
+      .populate([
+        { path: "categoryId", select: "name" },
+        { path: "subCategoryId", select: "name" },
+        { path: "subSubCategoryId", select: "name" },
+      ])
+      .select(productProjection);
+
+    product =
+      candidates.find(
+        (candidate) => createProductSlug(candidate.name) === createProductSlug(decodedSlug),
+      ) ?? null;
+  }
 
   if (!product) {
     const error = new Error("Product not found");

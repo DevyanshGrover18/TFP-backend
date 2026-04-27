@@ -1,5 +1,6 @@
 import {
   addItem,
+  clearCartService,
   getAllItems,
   removeItem,
   updateItemQuantity,
@@ -98,3 +99,31 @@ export const removeCartItem = async (req, res, next) => {
     next(error);
   }
 };
+
+export const clearCart = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Id is requires",
+      });
+    }
+
+    const { success, message } = await clearCartService(userId);
+    if (!success) {
+      return res.status(404).json({
+        success,
+        message,
+      });
+    }
+
+    res.status(200).json({
+      success,
+      message,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

@@ -125,6 +125,10 @@ const productSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    isSpecial: {
+      type: Boolean,
+      default: false,
+    },
     isNew : {
       type : Boolean,
       default : false

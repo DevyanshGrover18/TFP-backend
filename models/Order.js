@@ -83,6 +83,11 @@ const shippingAddressSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const orderFeildSchema = new mongoose.Schema({
+  key : String,
+  value : String
+})
+
 const quoteDetailsSchema = new mongoose.Schema(
   {
     firstName: { type: String, default: "" },
@@ -135,6 +140,10 @@ const orderSchema = new mongoose.Schema(
       type: [orderItemSchema],
       default: [],
     },
+    fields : {
+      type : [orderFeildSchema],
+      default : []
+    }
   },
   {
     timestamps: true,
