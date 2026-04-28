@@ -1,6 +1,7 @@
 import Cart from "../models/Cart.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
+import SpecialUser from "../models/SpecialUser.js";
 import mongoose from "mongoose";
 
 function createError(message, statusCode) {
@@ -18,10 +19,15 @@ async function ensureUserAndProduct({ userId, productId, variantId }) {
     throw createError("Invalid product id", 400);
   }
 
-  const [user, product] = await Promise.all([
+  // Bug fix: special users are stored in SpecialUser collection, not User.
+  // Check both so that either session type can use the cart.
+  const [regularUser, specialUser, product] = await Promise.all([
     User.findById(userId),
+    SpecialUser.findById(userId),
     Product.findById(productId),
   ]);
+
+  const user = regularUser || specialUser;
 
   if (!user) {
     throw createError("User not found", 404);

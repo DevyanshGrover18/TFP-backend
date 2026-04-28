@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Category from "../models/Category.js";
+import Product from "../models/Product.js";
 import { storeImage } from "./image.service.js";
 
 const categoryProjection = {
@@ -16,7 +17,7 @@ function buildCategoryTree(categories) {
   const roots = [];
 
   categories.forEach((category) => {
-    byId.set(String(category._id), { ...category.toObject(), children: [] });
+    byId.set(String(category._id), { ...category, children: [] }); // ← removed .toObject()
   });
 
   categories.forEach((category) => {
@@ -49,20 +50,108 @@ async function getDescendantIds(categoryId) {
 
 export async function listCategories(parentId = null) {
   const filter = {};
-
   if (parentId !== null) {
     filter.parentId = parentId;
   }
 
-  return Category.find(filter).sort({ createdAt: 1 }).select(categoryProjection);
+  const categories = await Category.find(filter)
+    .sort({ createdAt: 1 })
+    .select(categoryProjection)
+    .lean();
+
+  // Count products for each category across all three levels
+  const categoryIds = categories.map((c) => c._id);
+
+  const counts = await Product.aggregate([
+    {
+      $match: {
+        $or: [
+          { categoryId: { $in: categoryIds } },
+          { subCategoryId: { $in: categoryIds } },
+          { subSubCategoryId: { $in: categoryIds } },
+        ],
+      },
+    },
+    {
+      $project: {
+        matchedIds: {
+          $filter: {
+            input: ["$categoryId", "$subCategoryId", "$subSubCategoryId"],
+            as: "id",
+            cond: { $in: ["$$id", categoryIds] },
+          },
+        },
+      },
+    },
+    { $unwind: "$matchedIds" },
+    {
+      $group: {
+        _id: "$matchedIds",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const countMap = Object.fromEntries(
+    counts.map((c) => [String(c._id), c.count])
+  );
+
+  return categories.map((c) => ({
+    ...c,
+    productCount: countMap[String(c._id)] ?? 0,
+  }));
 }
 
-export async function getCategoryTree() {
-  const categories = await Category.find({}, categoryProjection).sort({
-    createdAt: 1,
-  });
 
-  return buildCategoryTree(categories);
+export async function getCategoryTree() {
+  const categories = await Category.find({}, categoryProjection)
+    .sort({ createdAt: 1 })
+    .lean();
+
+  // Count products for all categories
+  const categoryIds = categories.map((c) => c._id);
+
+  const counts = await Product.aggregate([
+    {
+      $match: {
+        $or: [
+          { categoryId: { $in: categoryIds } },
+          { subCategoryId: { $in: categoryIds } },
+          { subSubCategoryId: { $in: categoryIds } },
+        ],
+      },
+    },
+    {
+      $project: {
+        matchedIds: {
+          $filter: {
+            input: ["$categoryId", "$subCategoryId", "$subSubCategoryId"],
+            as: "id",
+            cond: { $in: ["$$id", categoryIds] },
+          },
+        },
+      },
+    },
+    { $unwind: "$matchedIds" },
+    {
+      $group: {
+        _id: "$matchedIds",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const countMap = Object.fromEntries(
+    counts.map((c) => [String(c._id), c.count])
+  );
+
+  // Attach productCount before building tree
+  const categoriesWithCount = categories.map((c) => ({
+    ...c,
+    productCount: countMap[String(c._id)] ?? 0,
+  }));
+
+  return buildCategoryTree(categoriesWithCount);
 }
 
 export async function getCategoryById(id) {

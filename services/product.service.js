@@ -22,6 +22,7 @@ const productProjection = {
   badges: 1,
   isSpecial: 1,
   isNew: 1,
+  tags : 1,
   createdAt: 1,
   updatedAt: 1,
 };
@@ -69,6 +70,7 @@ function serializeCategoryRef(value) {
 
 function serializeProduct(product) {
   const raw = typeof product?.toObject === "function" ? product.toObject() : product;
+
 
   return {
     ...raw,
@@ -367,6 +369,12 @@ async function normalizeProductPayload(payload) {
     "Description is required",
   );
 
+  
+  const tags = Array.isArray(payload?.tags)
+  ? [...new Set(payload.tags.map((t) => (typeof t === "string" ? t.trim() : "")).filter(Boolean))]
+  : [];
+
+  
   const { rootCategory, subCategory, subSubCategory } =
     await resolveCategoryChain({
       categoryId: payload?.categoryId,
@@ -408,6 +416,7 @@ async function normalizeProductPayload(payload) {
     badges,
     isSpecial,
     isNew,
+    tags,
   };
 }
 
@@ -477,6 +486,7 @@ export async function updateProduct(id, payload) {
 
   const normalizedPayload = await normalizeProductPayload(payload);
 
+
   product.sku = normalizedPayload.sku;
   product.name = normalizedPayload.name;
   product.colorCode = normalizedPayload.colorCode;
@@ -490,6 +500,7 @@ export async function updateProduct(id, payload) {
   product.badges = normalizedPayload.badges;
   product.isSpecial = normalizedPayload.isSpecial;
   product.isNew = normalizedPayload.isNew;
+  product.tags = normalizedPayload.tags;
 
   await product.save();
   return getProductById(product._id);

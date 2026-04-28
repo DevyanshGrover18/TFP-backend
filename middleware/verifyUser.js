@@ -14,7 +14,7 @@ export default function verifyUser(req, res, next) {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (!decoded?.id || decoded.role !== "user") {
+    if (!decoded?.id || (decoded.role !== "user" && decoded.role !== "specialUser")) {
       return res.status(401).json({
         success: false,
         message: "Unauthorized",

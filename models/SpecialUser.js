@@ -1,5 +1,64 @@
 import mongoose from "mongoose";
 
+const categoryValueSchema = new mongoose.Schema(
+  {
+    id: { type: String, default: "" },
+    name: { type: String, default: "" },
+  },
+  { _id: false },
+);
+
+const invoiceAddressSchema = new mongoose.Schema(
+  {
+    companyName: { type: String, default: "" },
+    street: { type: String, default: "" },
+    nr: { type: String, default: "" },
+    apartment: { type: String, default: "" },
+    city: { type: String, default: "" },
+    zip: { type: String, default: "" },
+    country: { type: String, default: "" },
+    notLiableForVat: { type: Boolean, default: false },
+    vatNumber: { type: String, default: "" },
+    chamberOfCommerce: { type: String, default: "" },
+    category: {
+      type: categoryValueSchema,
+      default: () => ({ id: "", name: "" }),
+    },
+    website: { type: String, default: "" },
+  },
+  { _id: false },
+);
+
+const shippingAddressSchema = new mongoose.Schema(
+  {
+    sameAsInvoice: { type: Boolean, default: false },
+    companyName: { type: String, default: "" },
+    street: { type: String, default: "" },
+    nr: { type: String, default: "" },
+    apartment: { type: String, default: "" },
+    city: { type: String, default: "" },
+    zip: { type: String, default: "" },
+    country: { type: String, default: "" },
+  },
+  { _id: false },
+);
+
+const quoteDetailsSchema = new mongoose.Schema(
+  {
+    firstName: { type: String, default: "" },
+    lastName: { type: String, default: "" },
+    email: { type: String, default: "" },
+    emailInvoice: { type: String, default: "" },
+    mobileCode: { type: String, default: "" },
+    mobile: { type: String, default: "" },
+    phoneCode: { type: String, default: "" },
+    phone: { type: String, default: "" },
+    acceptUpdates: { type: Boolean, default: false },
+    acceptTerms: { type: Boolean, default: false },
+  },
+  { _id: false },
+);
+
 const specialUserSchema = new mongoose.Schema(
   {
     name: {
@@ -18,20 +77,34 @@ const specialUserSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    status : {
-      type : Boolean,
-      required : true,
-      default : true
+    status: {
+      type: Boolean,
+      required: true,
+      default: true,
     },
-    role : {
-        type : String,
-        default : "special"
+    role: {
+      type: String,
+      default: "special",
     },
-    allowedCategories : {
-        type : [mongoose.Schema.Types.ObjectId],
-        ref : "Category",
-        required : true,
-    }
+    allowedCategories: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: "Category",
+      required: true,
+    },
+    quoteProfile: {
+      invoice: {
+        type: invoiceAddressSchema,
+        default: () => ({}),
+      },
+      shipping: {
+        type: shippingAddressSchema,
+        default: () => ({}),
+      },
+      details: {
+        type: quoteDetailsSchema,
+        default: () => ({}),
+      },
+    },
   },
   {
     timestamps: true,

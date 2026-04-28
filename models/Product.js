@@ -23,7 +23,7 @@ const variantSchema = new mongoose.Schema(
     id: {
       type: String,
       required: false,
-      default: undefined, // prevents null being stored when field is absent
+      default: undefined,
     },
     sku: {
       type: String,
@@ -129,16 +129,21 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    isNew : {
-      type : Boolean,
-      default : false
-    }
+    isNew: {
+      type: Boolean,
+      default: false,
+    },
+    tags: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,
   },
 );
 
-const Product = mongoose.models.Product || mongoose.model("Product", productSchema);
+delete mongoose.models["Product"];
+const Product = mongoose.model("Product", productSchema);
 
 export default Product;

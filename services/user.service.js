@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 import User from "../models/User.js";
+import SpecialUser from "../models/SpecialUser.js";
 import { getSignedKey } from "../utils/auth.js";
 
 function createError(message, statusCode) {
@@ -137,7 +138,12 @@ export async function getUserQuoteProfile(userId) {
     throw createError("Invalid user id", 400);
   }
 
-  const user = await User.findById(userId);
+  const [regularUser, specialUser] = await Promise.all([
+    User.findById(userId),
+    SpecialUser.findById(userId),
+  ]);
+
+  const user = regularUser || specialUser;
 
   if (!user) {
     throw createError("User not found", 404);
@@ -158,7 +164,12 @@ export async function updateUserQuoteProfile(userId, data) {
     throw createError("Invoice, shipping, and details are required", 400);
   }
 
-  const user = await User.findById(userId);
+  const [regularUser, specialUser] = await Promise.all([
+    User.findById(userId),
+    SpecialUser.findById(userId),
+  ]);
+
+  const user = regularUser || specialUser;
 
   if (!user) {
     throw createError("User not found", 404);

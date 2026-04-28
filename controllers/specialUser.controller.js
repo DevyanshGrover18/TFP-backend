@@ -5,6 +5,7 @@ import {
   loginSpecialUserService,
   updateSpecialUserById,
 } from "../services/specialUser.service.js";
+import { USER_COOKIE_NAME, getCookieOptions } from "../utils/auth.js";
 
 export const getAllSpecialUsers = async (req, res, next) => {
   try {
@@ -63,11 +64,27 @@ export const loginSpecialUser = async (req, res, next) => {
       password,
     });
 
+    // Bug fix: Set the JWT as an httpOnly cookie so verifyUser middleware can
+    // authenticate special users on protected routes (e.g. cart).
+    res.cookie(USER_COOKIE_NAME, token, getCookieOptions());
+
     res.status(200).json({
       success: true,
-      token,
       user,
       message,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Bug fix: AuthContext calls /special-users/logout — this handler clears the cookie.
+export const logoutSpecialUser = (req, res, next) => {
+  try {
+    res.clearCookie(USER_COOKIE_NAME, getCookieOptions());
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
     });
   } catch (error) {
     next(error);

@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Cart from "../models/Cart.js";
 import Order from "../models/Order.js";
 import User from "../models/User.js";
+import SpecialUser from "../models/SpecialUser.js";
 
 function createError(message, statusCode) {
   const error = new Error(message);
@@ -30,28 +31,28 @@ function normalizeOrderProfile(profile) {
   };
 }
 
-function sanitizeOrder(order) {
-  const customerName = `${order.profile?.details?.firstName ?? ""} ${
-    order.profile?.details?.lastName ?? ""
-  }`.trim();
+const sanitizeOrder = (order) => {
+  const user = typeof order.userId === "object" && order.userId !== null
+    ? order.userId
+    : null;
 
   return {
     id: order._id,
     orderNumber: order.orderNumber,
     status: order.status,
     createdAt: order.createdAt,
-    userId: order.userId,
-    customerName,
+    userId: user?._id ?? order.userId,
+    userRole: user?.userType ?? null,
+    customerName: `${order.profile?.details?.firstName ?? ""} ${order.profile?.details?.lastName ?? ""}`.trim(),
     companyName: order.profile?.invoice?.companyName ?? "",
     email: order.profile?.details?.email ?? "",
-    mobile: `${order.profile?.details?.mobileCode ?? ""} ${
-      order.profile?.details?.mobile ?? ""
-    }`.trim(),
+    mobile: `${order.profile?.details?.mobileCode ?? ""} ${order.profile?.details?.mobile ?? ""}`.trim(),
     itemCount: order.items?.length ?? 0,
-    profile: normalizeOrderProfile(order.profile),
-    items: order.items ?? [],
+    profile: order.profile,
+    items: order.items,
+    fields: order.fields,
   };
-}
+};
 
 function buildOrderNumber() {
   const timestamp = Date.now().toString().slice(-8);
@@ -74,10 +75,13 @@ export async function createOrderFromCart(userId) {
     throw createError("Invalid user id", 400);
   }
 
-  const [user, cart] = await Promise.all([
+  const [regularUser, specialUser, cart] = await Promise.all([
     User.findById(userId),
+    SpecialUser.findById(userId),
     Cart.findOne({ userId }).populate("items.productId"),
   ]);
+
+  const user = regularUser || specialUser;
 
   if (!user) {
     throw createError("User not found", 404);
@@ -139,11 +143,30 @@ export async function createOrderFromCart(userId) {
 }
 
 export async function getAllOrders() {
-  const orders = await Order.find({}).sort({ createdAt: -1 });
+  const orders = await Order.find({}).sort({ createdAt: -1 }).lean();
+
+  const ordersWithUsers = await Promise.all(
+    orders.map(async (order) => {
+      const [user, specialUser] = await Promise.all([
+        User.findById(order.userId).lean(),
+        SpecialUser.findById(order.userId).lean(),
+      ]);
+
+      const foundUser = user ?? specialUser;
+      const userType = user ? "user" : specialUser ? "special" : null;
+
+      return sanitizeOrder({
+        ...order,
+        userId: foundUser
+          ? { ...foundUser, userType }
+          : order.userId,
+      });
+    }),
+  );
 
   return {
     message: "Orders fetched successfully",
-    orders: orders.map(sanitizeOrder),
+    orders: ordersWithUsers,
   };
 }
 
