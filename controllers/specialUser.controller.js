@@ -24,13 +24,13 @@ export const createSpecialUser = async (req, res, next) => {
   try {
     const { name, email, password, allowedCategories, status } = req.body;
     if (!name || !email || !password || !allowedCategories) {
-      return res.status(200).json({
+      return res.status(400).json({
         success: false,
         message: "All fields are required",
       });
     }
 
-    const { token, user, message } = await createSpecialUserService({
+    const { user, message } = await createSpecialUserService({
       name,
       email,
       password,
@@ -40,7 +40,6 @@ export const createSpecialUser = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      token,
       user,
       message,
     });

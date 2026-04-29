@@ -82,9 +82,12 @@ export async function signupUserAccount({ name, email, password }) {
   }
 
   const normalizedEmail = email.trim().toLowerCase();
-  const existingUser = await User.findOne({ email: normalizedEmail });
+  const [existingUser, existingSpecialUser] = await Promise.all([
+    User.findOne({ email: normalizedEmail }),
+    SpecialUser.findOne({ email: normalizedEmail }),
+  ]);
 
-  if (existingUser) {
+  if (existingUser || existingSpecialUser) {
     throw createError("User already exists", 400);
   }
 
@@ -180,12 +183,18 @@ export async function updateUserQuoteProfile(userId, data) {
   const detailsEmail = String(data.details.email ?? "").trim().toLowerCase();
 
   if (detailsEmail && detailsEmail !== user.email) {
-    const existingUser = await User.findOne({
-      email: detailsEmail,
-      _id: { $ne: userId },
-    });
+    const [existingUser, existingSpecialUser] = await Promise.all([
+      User.findOne({
+        email: detailsEmail,
+        _id: { $ne: userId },
+      }),
+      SpecialUser.findOne({
+        email: detailsEmail,
+        _id: { $ne: userId },
+      }),
+    ]);
 
-    if (existingUser) {
+    if (existingUser || existingSpecialUser) {
       throw createError("Email already exists", 400);
     }
   }
@@ -261,8 +270,11 @@ export const addNewUser = async ({ name, email, password, status }) => {
   }
 
   const normalizedEmail = email.trim().toLowerCase();
-  const prevUser = await User.findOne({ email: normalizedEmail });
-  if (prevUser) {
+  const [prevUser, specialUser] = await Promise.all([
+    User.findOne({ email: normalizedEmail }),
+    SpecialUser.findOne({ email: normalizedEmail }),
+  ]);
+  if (prevUser || specialUser) {
     throw createError("Email already exists", 400);
   }
 
@@ -330,6 +342,9 @@ export const updateUserById = async (id, data) => {
   }
 
   const allowedFields = ["name", "email", "status"];
+  if (typeof data.password === "string" && data.password.trim()) {
+    allowedFields.push("password");
+  }
 
   const filteredData = Object.keys(data)
     .filter((key) => allowedFields.includes(key))
@@ -346,17 +361,24 @@ export const updateUserById = async (id, data) => {
     filteredData.email = filteredData.email.trim().toLowerCase();
   }
 
+  if (typeof filteredData.password === "string") {
+    filteredData.password = await bcrypt.hash(filteredData.password.trim(), 10);
+  }
+
   if (Object.keys(filteredData).length === 0) {
     throw createError("No valid fields provided for update", 400);
   }
 
   if (filteredData.email) {
-    const existingUser = await User.findOne({
-      email: filteredData.email,
-      _id: { $ne: id },
-    });
+    const [existingUser, existingSpecialUser] = await Promise.all([
+      User.findOne({
+        email: filteredData.email,
+        _id: { $ne: id },
+      }),
+      SpecialUser.findOne({ email: filteredData.email }),
+    ]);
 
-    if (existingUser) {
+    if (existingUser || existingSpecialUser) {
       throw createError("Email already exists", 400);
     }
   }

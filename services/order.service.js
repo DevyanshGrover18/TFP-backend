@@ -10,6 +10,46 @@ function createError(message, statusCode) {
   return error;
 }
 
+function canAccessOrder(order, requester) {
+  if (!requester) {
+    return false;
+  }
+
+  if (requester.kind === "admin") {
+    return true;
+  }
+
+  return String(order.userId) === String(requester.id);
+}
+
+function buildDateRangeFilter(startDate, endDate) {
+  if (!startDate && !endDate) {
+    return {};
+  }
+
+  if (!startDate || !endDate) {
+    throw createError("startDate and endDate are required", 400);
+  }
+
+  const start = new Date(`${startDate}T00:00:00.000`);
+  const end = new Date(`${endDate}T23:59:59.999`);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    throw createError("Invalid date range", 400);
+  }
+
+  if (start > end) {
+    throw createError("startDate cannot be after endDate", 400);
+  }
+
+  return {
+    createdAt: {
+      $gte: start,
+      $lte: end,
+    },
+  };
+}
+
 function normalizeCategoryValue(category) {
   if (typeof category === "string") {
     return { id: "", name: category.trim() };
@@ -142,8 +182,9 @@ export async function createOrderFromCart(userId) {
   };
 }
 
-export async function getAllOrders() {
-  const orders = await Order.find({}).sort({ createdAt: -1 }).lean();
+export async function getAllOrders({ startDate, endDate } = {}) {
+  const filter = buildDateRangeFilter(startDate, endDate);
+  const orders = await Order.find(filter).sort({ createdAt: -1 }).lean();
 
   const ordersWithUsers = await Promise.all(
     orders.map(async (order) => {
@@ -183,7 +224,7 @@ export async function getOrdersByUserId(userId) {
   };
 }
 
-export async function getOrderById(id) {
+export async function getOrderById(id, requester) {
   if (!mongoose.isValidObjectId(id)) {
     throw createError("Invalid order id", 400);
   }
@@ -192,6 +233,10 @@ export async function getOrderById(id) {
 
   if (!order) {
     throw createError("Order not found", 404);
+  }
+
+  if (!canAccessOrder(order, requester)) {
+    throw createError("Unauthorized", 403);
   }
 
   return {

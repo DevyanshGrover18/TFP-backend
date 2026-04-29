@@ -13,6 +13,12 @@ const verifyAdmin = (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded?.id || decoded?.role !== "admin") {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized session",
+      });
+    }
     req.admin = decoded;
     next();
   } catch (error) {

@@ -1,8 +1,9 @@
 import SpecialUser from "../models/SpecialUser.js";
 import bcrypt from "bcrypt";
 import { getSignedKey } from "../utils/auth.js";
-import { encrypt, decrypt } from "../utils/encryption.js";
+import { decrypt } from "../utils/encryption.js";
 import mongoose from "mongoose";
+import User from "../models/User.js";
 
 function createError(message, statusCode) {
   const error = new Error(message);
@@ -38,16 +39,27 @@ export const createSpecialUserService = async ({
   allowedCategories,
   status,
 }) => {
+  if (!name || !email || !password) {
+    throw createError("Name, email and password are required", 400);
+  }
+
   const normalizedEmail = email.trim().toLowerCase();
-  const prevUser = await SpecialUser.findOne({ email: normalizedEmail });
-  if (prevUser) {
+  const [prevUser, regularUser] = await Promise.all([
+    SpecialUser.findOne({ email: normalizedEmail }),
+    User.findOne({ email: normalizedEmail }),
+  ]);
+  if (prevUser || regularUser) {
     throw createError("Email already exists", 400);
+  }
+
+  if (!Array.isArray(allowedCategories) || allowedCategories.length === 0) {
+    throw createError("At least one category is required", 400);
   }
 
   const user = await SpecialUser.create({
     name: name.trim(),
     email: normalizedEmail,
-    password: encrypt(password),
+    password: await bcrypt.hash(password, 10),
     allowedCategories,
     status,
   });
@@ -75,8 +87,27 @@ export const loginSpecialUserService = async ({ email, password }) => {
     throw createError("Account is disabled", 403);
   }
 
-  const plainPassword = decrypt(user.password);
-  if (plainPassword !== password) {
+  const isBcryptHash =
+    typeof user.password === "string" && user.password.startsWith("$2");
+  let isMatch = false;
+
+  if (isBcryptHash) {
+    isMatch = await bcrypt.compare(password, user.password);
+  } else {
+    try {
+      const plainPassword = decrypt(user.password);
+      isMatch = plainPassword === password;
+
+      if (isMatch) {
+        user.password = await bcrypt.hash(password, 10);
+        await user.save();
+      }
+    } catch {
+      isMatch = false;
+    }
+  }
+
+  if (!isMatch) {
     throw createError("Incorrect password", 400);
   }
 
@@ -133,7 +164,7 @@ export const updateSpecialUserById = async (id, data) => {
     typeof filteredData.password === "string" &&
     filteredData.password.length > 0
   ) {
-    filteredData.password = encrypt(filteredData.password);
+    filteredData.password = await bcrypt.hash(filteredData.password, 10);
   } else {
     delete filteredData.password;
   }
@@ -143,12 +174,15 @@ export const updateSpecialUserById = async (id, data) => {
   }
 
   if (filteredData.email) {
-    const existingUser = await SpecialUser.findOne({
-      email: filteredData.email,
-      _id: { $ne: id },
-    });
+    const [existingUser, regularUser] = await Promise.all([
+      SpecialUser.findOne({
+        email: filteredData.email,
+        _id: { $ne: id },
+      }),
+      User.findOne({ email: filteredData.email }),
+    ]);
 
-    if (existingUser) {
+    if (existingUser || regularUser) {
       throw createError("Email already exists", 400);
     }
   }

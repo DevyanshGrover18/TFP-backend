@@ -8,16 +8,45 @@ function createError(message, statusCode) {
   return error;
 }
 
-export async function createAdminAccount({ username, password }) {
-  const admin = await Admin.findOne({ username });
+export async function createAdminAccount({ username, password, setupKey }) {
+  const normalizedUsername =
+    typeof username === "string" ? username.trim() : "";
+  const normalizedPassword =
+    typeof password === "string" ? password.trim() : "";
+
+  if (!normalizedUsername || !normalizedPassword) {
+    throw createError("Username and password are required", 400);
+  }
+
+  const normalizedSetupKey =
+    typeof setupKey === "string" ? setupKey.trim() : "";
+  const configuredSetupKey =
+    typeof process.env.ADMIN_SETUP_KEY === "string"
+      ? process.env.ADMIN_SETUP_KEY.trim()
+      : "";
+
+  if (!configuredSetupKey) {
+    throw createError("Admin signup is disabled", 403);
+  }
+
+  if (normalizedSetupKey !== configuredSetupKey) {
+    throw createError("Invalid admin setup key", 403);
+  }
+
+  const existingAdminCount = await Admin.countDocuments();
+  if (existingAdminCount > 0) {
+    throw createError("Admin signup is disabled", 403);
+  }
+
+  const admin = await Admin.findOne({ username: normalizedUsername });
 
   if (admin) {
     throw createError("Admin Already Exists", 400);
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await bcrypt.hash(normalizedPassword, 10);
   const newAdmin = await Admin.create({
-    username,
+    username: normalizedUsername,
     password: hashedPassword,
   });
 
@@ -28,13 +57,22 @@ export async function createAdminAccount({ username, password }) {
 }
 
 export async function loginAdminAccount({ username, password }) {
-  const admin = await Admin.findOne({ username });
+  const normalizedUsername =
+    typeof username === "string" ? username.trim() : "";
+  const normalizedPassword =
+    typeof password === "string" ? password : "";
+
+  if (!normalizedUsername || !normalizedPassword) {
+    throw createError("Username and password are required", 400);
+  }
+
+  const admin = await Admin.findOne({ username: normalizedUsername });
 
   if (!admin) {
     throw createError("Admin not Found", 404);
   }
 
-  const isMatch = await bcrypt.compare(password, admin.password);
+  const isMatch = await bcrypt.compare(normalizedPassword, admin.password);
 
   if (!isMatch) {
     throw createError("Invalid Password", 400);

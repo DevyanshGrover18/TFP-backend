@@ -24,7 +24,8 @@ export const createOrder = async (req, res, next) => {
 
 export const getOrders = async (req, res, next) => {
   try {
-    const { message, orders } = await getAllOrders();
+    const { startDate, endDate } = req.query;
+    const { message, orders } = await getAllOrders({ startDate, endDate });
 
     res.status(200).json({
       success: true,
@@ -52,7 +53,7 @@ export const getMyOrders = async (req, res, next) => {
 
 export const getOrder = async (req, res, next) => {
   try {
-    const { message, order } = await getOrderById(req.params.id);
+    const { message, order } = await getOrderById(req.params.id, req.session);
 
     res.status(200).json({
       success: true,
@@ -66,15 +67,18 @@ export const getOrder = async (req, res, next) => {
 
 export const sendSuccessMail = async (req, res, next) => {
   try {
-    const { name, email, orderId } = req.body;
-    if (!name || !email || !orderId) {
+    const { orderId } = req.body;
+    if (!orderId) {
       return res.status(400).json({
         success: false,
-        message: "Name, email and order id are required",
+        message: "Order id is required",
       });
     }
 
-    const { message } = await sendResendMail({ name, email, orderId });
+    const { message } = await sendResendMail({
+      orderId,
+      requester: req.session,
+    });
 
     res.status(200).json({
       success: true,
@@ -105,5 +109,3 @@ export const updateOrderStatus = async (req, res, next) => {
     next(error);
   }
 };
-
-

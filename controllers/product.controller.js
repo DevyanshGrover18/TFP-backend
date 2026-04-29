@@ -8,10 +8,12 @@ import {
   updateProduct,
 } from "../services/product.service.js";
 import { createSignedUploadConfig } from "../services/image.service.js";
+import { resolveRequestSession } from "../utils/requestSession.js";
 
-export async function getProducts(_req, res, next) {
+export async function getProducts(req, res, next) {
   try {
-    const products = await listProducts();
+    const viewer = await resolveRequestSession(req);
+    const products = await listProducts(viewer);
     return res.json({ products });
   } catch (error) {
     return next(error);
@@ -74,7 +76,8 @@ export async function getProductUploadSignatureController(req, res, next) {
 export const getProductByName = async (req, res, next) => {
   try {
     const { slug } = req.params;
-    const { message, product } = await getProductBySlug({ slug });
+    const viewer = await resolveRequestSession(req);
+    const { message, product } = await getProductBySlug({ slug, viewer });
     res.status(200).json({
       success: true,
       message,
@@ -86,10 +89,15 @@ export const getProductByName = async (req, res, next) => {
 };
 
 export const getProductFilters = async (req, res, next)=>{
-  const {message, filters} = await createProductFilters()
-  res.status(200).json({
-    success: true,
-    message,
-    filters
-  })
-}
+  try {
+    const viewer = await resolveRequestSession(req);
+    const {message, filters} = await createProductFilters(viewer);
+    res.status(200).json({
+      success: true,
+      message,
+      filters,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

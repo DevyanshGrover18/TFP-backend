@@ -262,6 +262,22 @@ export async function deleteCategory(id) {
   const descendantIds = await getDescendantIds(category._id);
   const idsToDelete = [category._id, ...descendantIds];
 
+  const linkedProduct = await Product.findOne({
+    $or: [
+      { categoryId: { $in: idsToDelete } },
+      { subCategoryId: { $in: idsToDelete } },
+      { subSubCategoryId: { $in: idsToDelete } },
+    ],
+  }).select({ _id: 1, name: 1 });
+
+  if (linkedProduct) {
+    const error = new Error(
+      `Cannot delete category while products still reference it. Remove or reassign product "${linkedProduct.name}" first.`,
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
   await Category.deleteMany({ _id: { $in: idsToDelete } });
 
   return {

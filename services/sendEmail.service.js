@@ -3,11 +3,34 @@ import Order from "../models/Order.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export const sendResendMail = async ({ name, email, orderId }) => {
+function createError(message, statusCode) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+export const sendResendMail = async ({ orderId, requester }) => {
   const order = await Order.findById(orderId);
 
   if (!order) {
-    throw new Error("Order not found");
+    throw createError("Order not found", 404);
+  }
+
+  const isAdmin = requester?.kind === "admin";
+  const isOwner =
+    requester?.id && String(order.userId) === String(requester.id);
+
+  if (!isAdmin && !isOwner) {
+    throw createError("Unauthorized", 403);
+  }
+
+  const email = order.profile?.details?.email ?? "";
+  const name =
+    `${order.profile?.details?.firstName ?? ""} ${order.profile?.details?.lastName ?? ""}`.trim() ||
+    "Customer";
+
+  if (!email) {
+    throw createError("Order email not found", 400);
   }
 
   const itemsHtml = order.items
@@ -77,8 +100,8 @@ export const sendResendMail = async ({ name, email, orderId }) => {
       </p>
 
       <div style="text-align:center; margin:30px 0;">
-        <a href="${process.env.BASE_URL}/order/${orderId}" style="background:#111; color:#fff; padding:12px 20px; text-decoration:none; border-radius:6px;">
-          View Order
+        <a href="${process.env.BASE_URL}/account" style="background:#111; color:#fff; padding:12px 20px; text-decoration:none; border-radius:6px;">
+          View Your Account
         </a>
       </div>
 

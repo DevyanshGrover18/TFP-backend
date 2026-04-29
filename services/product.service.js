@@ -94,6 +94,42 @@ function createProductSlug(name) {
     .replace(/^-+|-+$/g, "");
 }
 
+export function buildViewerProductMatch(viewer) {
+  if (viewer?.kind === "admin") {
+    return {};
+  }
+
+  if (viewer?.kind === "specialUser") {
+    const allowedCategoryIds = (viewer.allowedCategories ?? [])
+      .filter(Boolean)
+      .map((value) => new mongoose.Types.ObjectId(value));
+
+    return {
+      $or: [
+        { isSpecial: { $ne: true } },
+        {
+          isSpecial: true,
+          ...(allowedCategoryIds.length
+            ? {
+                $or: [
+                  { categoryId: { $in: allowedCategoryIds } },
+                  { subCategoryId: { $in: allowedCategoryIds } },
+                  { subSubCategoryId: { $in: allowedCategoryIds } },
+                ],
+              }
+            : {
+                _id: null,
+              }),
+        },
+      ],
+    };
+  }
+
+  return {
+    isSpecial: { $ne: true },
+  };
+}
+
 function getTodayPrefix() {
   return new Date().toISOString().slice(0, 10).replace(/-/g, "");
 }
@@ -420,8 +456,8 @@ async function normalizeProductPayload(payload) {
   };
 }
 
-export async function listProducts() {
-  const products = await Product.find({})
+export async function listProducts(viewer) {
+  const products = await Product.find(buildViewerProductMatch(viewer))
     .sort({ createdAt: -1 })
     .populate([
       { path: "categoryId", select: "name" },
@@ -528,7 +564,7 @@ export async function deleteProduct(id) {
   };
 }
 
-export const getProductBySlug = async ({ slug }) => {
+export const getProductBySlug = async ({ slug, viewer }) => {
   if (!slug) {
     const error = new Error("Please select a product");
     error.statusCode = 400;
@@ -537,7 +573,10 @@ export const getProductBySlug = async ({ slug }) => {
 
   const decodedSlug = decodeURIComponent(String(slug)).trim();
 
+  const productMatch = buildViewerProductMatch(viewer);
+
   let product = await Product.findOne({
+    ...productMatch,
     name: { $regex: `^${decodedSlug}$`, $options: "i" },
   }).populate([
     { path: "categoryId", select: "name" },
@@ -546,7 +585,7 @@ export const getProductBySlug = async ({ slug }) => {
   ]);
 
   if (!product) {
-    const candidates = await Product.find({})
+    const candidates = await Product.find(productMatch)
       .populate([
         { path: "categoryId", select: "name" },
         { path: "subCategoryId", select: "name" },
@@ -572,8 +611,8 @@ export const getProductBySlug = async ({ slug }) => {
   };
 };
 
-export const createProductFilters = async () => {
-  const products = await Product.find({})
+export const createProductFilters = async (viewer) => {
+  const products = await Product.find(buildViewerProductMatch(viewer))
     .populate([
       { path: "categoryId", select: "name level parentId" },
       { path: "subCategoryId", select: "name level parentId" },
