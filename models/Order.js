@@ -83,7 +83,7 @@ const shippingAddressSchema = new mongoose.Schema(
   { _id: false },
 );
 
-const orderFeildSchema = new mongoose.Schema({
+const orderFieldSchema = new mongoose.Schema({
   key : String,
   value : String
 })
@@ -141,7 +141,7 @@ const orderSchema = new mongoose.Schema(
       default: [],
     },
     fields : {
-      type : [orderFeildSchema],
+      type : [orderFieldSchema],
       default : []
     }
   },

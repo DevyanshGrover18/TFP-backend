@@ -100,10 +100,11 @@ export const updateOrderStatus = async (req, res, next) => {
       });
     }
 
-    const { message } = await updateOrderStatusById({ id, status, fields });
+    const { message, order } = await updateOrderStatusById({ id, status, fields });
     res.status(200).json({
       success: true,
       message,
+      order,
     });
   } catch (error) {
     next(error);

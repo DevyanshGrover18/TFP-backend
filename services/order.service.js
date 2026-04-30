@@ -292,5 +292,6 @@ export const updateOrderStatusById = async ({ id, status, fields }) => {
 
   return {
     message: "Order updated successfully",
+    order: sanitizeOrder(order),
   };
 };
