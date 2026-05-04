@@ -10,6 +10,7 @@ import specialUserRouter from "./routes/specialUser.routes.js";
 import orderRoutes from "./routes/order.route.js";
 import overviewRoutes from "./routes/overview.route.js";
 import badgeRoutes from "./routes/badges.route.js";
+import contactRoutes from "./routes/contact.route.js";
 import { errorMiddleware } from "./middleware/errorMiddleware.js";
 import "./config/dotenv.js";
 import "./config/mongo.js";
@@ -50,6 +51,7 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/overview", overviewRoutes);
 app.use("/api/badges", badgeRoutes);
+app.use("/api/contact", contactRoutes);
 app.use(errorMiddleware);
 
 app.listen(process.env.PORT, () => {
