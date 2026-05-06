@@ -95,12 +95,12 @@ const productSchema = new mongoose.Schema(
     subCategoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
-      required: true,
+      required: false,
     },
     subSubCategoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
-      required: true,
+      required: false,
     },
     specifications: {
       type: [specificationSchema],

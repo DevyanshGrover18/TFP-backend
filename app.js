@@ -7,10 +7,12 @@ import adminAuthRoutes from "./routes/adminAuth.route.js";
 import userAuthRoutes from "./routes/user.route.js";
 import cartRoutes from "./routes/cart.route.js";
 import specialUserRouter from "./routes/specialUser.routes.js";
+import specialUserRequestRouter from "./routes/specialUserRequest.route.js";
 import orderRoutes from "./routes/order.route.js";
 import overviewRoutes from "./routes/overview.route.js";
 import badgeRoutes from "./routes/badges.route.js";
 import contactRoutes from "./routes/contact.route.js";
+import HomepageRouter from "./routes/homepage.route.js"
 import { errorMiddleware } from "./middleware/errorMiddleware.js";
 import "./config/dotenv.js";
 import "./config/mongo.js";
@@ -44,6 +46,7 @@ app.use(cookieParser());
 
 app.use("/api/auth/admin", adminAuthRoutes);
 app.use("/api/user", userAuthRoutes);
+app.use("/api/special-users/request", specialUserRequestRouter);
 app.use("/api/special-users", specialUserRouter);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
@@ -52,6 +55,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/overview", overviewRoutes);
 app.use("/api/badges", badgeRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/home", HomepageRouter);
 app.use(errorMiddleware);
 
 app.listen(process.env.PORT, () => {

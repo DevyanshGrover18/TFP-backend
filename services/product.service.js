@@ -158,68 +158,68 @@ async function resolveCategoryChain({
   const normalizedSubCategoryId = getCategoryRefId(subCategoryId);
   const normalizedSubSubCategoryId = getCategoryRefId(subSubCategoryId);
 
-  if (
-    !normalizedCategoryId ||
-    !normalizedSubCategoryId ||
-    !normalizedSubSubCategoryId
-  ) {
-    const error = new Error(
-      "Category, subcategory, and sub sub category are required",
-    );
+  if (!normalizedCategoryId) {
+    const error = new Error("Main category is required");
     error.statusCode = 400;
     throw error;
   }
 
-  const ids = [
-    normalizedCategoryId,
-    normalizedSubCategoryId,
-    normalizedSubSubCategoryId,
-  ];
+  if (!mongoose.isValidObjectId(normalizedCategoryId)) {
+    const error = new Error("Invalid category selection");
+    error.statusCode = 400;
+    throw error;
+  }
 
-  for (const id of ids) {
-    if (!mongoose.isValidObjectId(id)) {
-      const error = new Error("Invalid category selection");
+  const rootCategory = await Category.findById(normalizedCategoryId);
+  if (!rootCategory || rootCategory.level !== 1) {
+    const error = new Error("Main category not found or invalid");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  let subCategory = null;
+  if (normalizedSubCategoryId) {
+    if (!mongoose.isValidObjectId(normalizedSubCategoryId)) {
+      const error = new Error("Invalid subcategory selection");
+      error.statusCode = 400;
+      throw error;
+    }
+    subCategory = await Category.findById(normalizedSubCategoryId);
+    if (!subCategory || subCategory.level !== 2) {
+      const error = new Error("Subcategory not found or invalid");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (String(subCategory.parentId) !== String(rootCategory._id)) {
+      const error = new Error("Subcategory must belong to the selected category");
       error.statusCode = 400;
       throw error;
     }
   }
 
-  const [rootCategory, subCategory, subSubCategory] = await Promise.all([
-    Category.findById(normalizedCategoryId),
-    Category.findById(normalizedSubCategoryId),
-    Category.findById(normalizedSubSubCategoryId),
-  ]);
-
-  if (!rootCategory || !subCategory || !subSubCategory) {
-    const error = new Error("One or more categories were not found");
-    error.statusCode = 404;
-    throw error;
-  }
-
-  if (
-    rootCategory.level !== 1 ||
-    subCategory.level !== 2 ||
-    subSubCategory.level !== 3
-  ) {
-    const error = new Error(
-      "Selected categories must be category, subcategory, and sub sub category",
-    );
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (String(subCategory.parentId) !== String(rootCategory._id)) {
-    const error = new Error("Subcategory must belong to the selected category");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (String(subSubCategory.parentId) !== String(subCategory._id)) {
-    const error = new Error(
-      "Sub sub category must belong to the selected subcategory",
-    );
-    error.statusCode = 400;
-    throw error;
+  let subSubCategory = null;
+  if (normalizedSubSubCategoryId) {
+    if (!subCategory) {
+      const error = new Error("Subcategory is required if sub-sub-category is selected");
+      error.statusCode = 400;
+      throw error;
+    }
+    if (!mongoose.isValidObjectId(normalizedSubSubCategoryId)) {
+      const error = new Error("Invalid sub-sub-category selection");
+      error.statusCode = 400;
+      throw error;
+    }
+    subSubCategory = await Category.findById(normalizedSubSubCategoryId);
+    if (!subSubCategory || subSubCategory.level !== 3) {
+      const error = new Error("Sub-sub-category not found or invalid");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (String(subSubCategory.parentId) !== String(subCategory._id)) {
+      const error = new Error("Sub-sub-category must belong to the selected subcategory");
+      error.statusCode = 400;
+      throw error;
+    }
   }
 
   return {
@@ -405,12 +405,12 @@ async function normalizeProductPayload(payload) {
     "Description is required",
   );
 
-  
+
   const tags = Array.isArray(payload?.tags)
   ? [...new Set(payload.tags.map((t) => (typeof t === "string" ? t.trim() : "")).filter(Boolean))]
   : [];
 
-  
+
   const { rootCategory, subCategory, subSubCategory } =
     await resolveCategoryChain({
       categoryId: payload?.categoryId,
@@ -444,8 +444,8 @@ async function normalizeProductPayload(payload) {
     colorCode,
     description,
     categoryId: rootCategory._id,
-    subCategoryId: subCategory._id,
-    subSubCategoryId: subSubCategory._id,
+    subCategoryId: subCategory?._id ?? null,
+    subSubCategoryId: subSubCategory?._id ?? null,
     specifications,
     media,
     variants,
